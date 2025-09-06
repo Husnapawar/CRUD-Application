@@ -13,20 +13,124 @@ const pool = require('../db');
 //       }
 // }   .
 
-async function handleGetAllUsers (req, res)  {
-  try {
-    const result = await pool.query("SELECT * FROM users");
+// async function handleGetAllUsers (req, res)  {
+//   try {
+//     const result = await pool.query("SELECT * FROM users");
 
-    // Format dob before sending
-    const users = result.rows.map(user => ({
-      ...user,
-      dob: formatDate(user.dob)
-    }));
+//     // Format dob before sending
+//     const users = result.rows.map(user => ({
+//       ...user,
+//       dob: formatDate(user.dob)
+//     }));
 
-    res.json(users);
+//     res.json(users);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+
+
+ async function handleGetAllUsers (req, res) {
+//   try {
+//     const { page = 1, limit = 10, sortKey = "first_name", sortOrder = "asc" } = req.query;
+//       if(name){
+//         const { name } = req.query;
+
+//     if (!name) {
+//       return res.status(400).json({ error: "Name is required" });
+//     }
+
+//    const result = await pool.query(
+//   "SELECT * FROM users WHERE first_name LIKE $1",
+//   [`%${name}%`]
+// );
+//     res.json(result.rows);
+//       }
+//      const pageNum = parseInt(page, 10) || 1;
+// const limitNum = parseInt(limit, 10) || 10;
+// const offset = (pageNum - 1) * limitNum;
+
+
+//     // whitelist allowed columns
+//     const validColumns = ["first_name", "last_name", "dob", "mobile", "address"];
+//     const validOrders = ["asc", "desc"];
+
+//     const column = validColumns.includes(sortKey) ? sortKey : "first_name";
+//     const order = validOrders.includes(sortOrder.toLowerCase()) ? sortOrder : "asc";
+
+//    const result = await pool.query(
+//   `SELECT * FROM users ORDER BY ${column} ${order} LIMIT $1 OFFSET $2`,
+//   [limitNum, offset]
+// );
+
+
+//       const total = await pool.query(`SELECT COUNT(*) FROM users`);
+
+//     res.json({
+//       data: result.rows,
+//       total: parseInt(total.rows[0].count),
+//       page: parseInt(page),
+//       limit: parseInt(limit)
+//     }); 
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Server error" });
+//   }
+ try {
+    const { 
+      page = 1, 
+      limit = 10, 
+      sortKey = "first_name", 
+      sortOrder = "asc", 
+      name =""
+    } = req.query;
+
+    // if search query is provided → run search
+    if (name) {
+      const result = await pool.query(
+        "SELECT * FROM users WHERE first_name LIKE $1",
+        [`%${name}%`]
+      );
+
+      return res.json({
+        data: result.rows,
+        total: result.rows.length,
+        page: 1,
+        limit: result.rows.length
+      });
+    }
+
+    // else → run all users with pagination + sorting
+    
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
+
+    const validColumns = ["first_name", "last_name", "dob", "mobile", "address"];
+    const validOrders = ["asc", "desc"];
+
+    const column = validColumns.includes(sortKey) ? sortKey : "first_name";
+    const order = validOrders.includes(sortOrder.toLowerCase()) ? sortOrder : "asc";
+
+    const result = await pool.query(
+      `SELECT * FROM users ORDER BY ${column} ${order} LIMIT $1 OFFSET $2`,
+      [limitNum, offset]
+    );
+
+    const total = await pool.query("SELECT COUNT(*) FROM users");
+
+    return res.json({
+      data: result.rows,
+      total: parseInt(total.rows[0].count),
+      page: pageNum,
+      limit: limitNum
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -62,6 +166,7 @@ async function handleCreateNewtUser(req, res) {
           [first_name, last_name, dob, mobile, address]
         );
         res.sendStatus(201);
+         res.send("User added");
       } catch (err) {
         res.status(500).json({ error: err.message });
       }
@@ -77,6 +182,27 @@ const { id } = req.params;
   }
 }
 
+// search
+// async function searchUser(req, res)  {
+//  try {
+//     const { name } = req.query;
+
+//     if (!name) {
+//       return res.status(400).json({ error: "Name is required" });
+//     }
+
+//    const result = await pool.query(
+//   "SELECT * FROM users WHERE first_name LIKE $1",
+//   [`%${name}%`]
+// );
+//     res.json(result.rows);
+//     console.log("search for ",name);
+//   } catch (err) {
+//     console.error("Error searching users:", err);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 //  format dob as dd/mm/yyyy
 function formatDate(dateString) {
   const date = new Date(dateString);
@@ -87,9 +213,12 @@ function formatDate(dateString) {
 }
 
 
+
+
 module.exports ={
     handleGetAllUsers,
     handleUpdateUserById,
     handleDeleteUserById,
-    handleCreateNewtUser
-}
+    handleCreateNewtUser,
+    // searchUser
+} 
