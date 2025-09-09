@@ -182,26 +182,6 @@ const { id } = req.params;
   }
 }
 
-// search
-// async function searchUser(req, res)  {
-//  try {
-//     const { name } = req.query;
-
-//     if (!name) {
-//       return res.status(400).json({ error: "Name is required" });
-//     }
-
-//    const result = await pool.query(
-//   "SELECT * FROM users WHERE first_name LIKE $1",
-//   [`%${name}%`]
-// );
-//     res.json(result.rows);
-//     console.log("search for ",name);
-//   } catch (err) {
-//     console.error("Error searching users:", err);
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 
 //  format dob as dd/mm/yyyy
 function formatDate(dateString) {
@@ -222,3 +202,4 @@ module.exports ={
     handleCreateNewtUser,
     // searchUser
 } 
+
