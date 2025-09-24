@@ -1,8 +1,8 @@
 <template>
 
   <router-link to="/add"></router-link> <br  />
+  <router-link to="/home"></router-link>
   <router-link to="/"></router-link>
-
   <router-view></router-view>
 
 </template>

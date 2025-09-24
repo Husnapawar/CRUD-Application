@@ -1,32 +1,43 @@
-<script>
+<script lang="ts" >
 import axios from "axios";
-  
-export default {
+  import { defineComponent } from "vue";
+import router from "../routes";
+
+  interface User {
+  id: number;
+  first_name: string;
+  last_name: string;
+  dob: string;
+  mobile: string;
+  address: string;
+}
+export default defineComponent ({
   name: "userList",
 
   data() {
     return {
-      users: [],
+      users: [] as User[],
       searchName: "",
       selectedUser: null,
       isEditing: false,
-      sortKey: "",
+      sortKey: "" as keyof User | "",
       sortOrder: "asc",
       page: 1,
       limit: 10,
       total: 0,
-       userToEdit: null
+       userToEdit: null as User | null
     };
   },
 
   computed: {
-    sortedUsers() {
+    sortedUsers(): User[] {
       let sorted = [...this.users];
       if (this.sortKey) {
+        const key = this.sortKey as keyof User; 
         sorted.sort((a, b) => {
-          let result = 0;
-          if (a[this.sortKey] < b[this.sortKey]) result = -1;
-          if (a[this.sortKey] > b[this.sortKey]) result = 1;
+          let result = 0; 
+          if (a[key] < b[key]) result = -1;
+          if (a[key] > b[key]) result = 1;
           return this.sortOrder === "asc" ? result : -result;
         });
       }
@@ -38,7 +49,7 @@ export default {
   },
 
   methods: {
-    //  your methods stay here
+  
     async fetchUsers() {
       try {
         const res = await axios.get(`/api/users`, {
@@ -50,18 +61,12 @@ export default {
             name: this.searchName
           }
         });
-       
-        this.users = res.data.data;   // backend returns {data, total, page, limit}
+        this.users = res.data.data;   // backend returns data, total, page, limit
         this.total = res.data.total;
-
-    
-
       } catch (err) {
         console.error("Error fetching users:", err);
       }
     },
- 
-    
      prevPage() {
     if (this.page > 1) {
       this.page--;
@@ -74,30 +79,26 @@ export default {
       this.fetchUsers();
     }
   },
-  goToPage(n) {
-    this.page = n;
+  goToPage(n:number) {
+    this.page = n;  
     this.fetchUsers();
   },
   
-  editUser(user) {
+  logout(){
+    localStorage.removeItem("token");
+    router.push("/");
+  },
+  editUser(user :User) {
          this.$router.push({
          path: "/add",
-           query: { user: JSON.stringify(user), edit: true }
+           query: { user: JSON.stringify(user), edit: "true" }
+
          });
        },
 
-    // async searchUsers() {
-    //   try {
-    //     const res = await axios.get("/api/users/search", {
-    //       params: { name: this.searchName }
-    //     });
-    //     this.users = res.data;
-    //   } catch (err) {
-    //     console.error("Error searching users:", err);
-    //   }
-    // },
+  
 
-    async deleteUser(id) {
+    async deleteUser(id:number) {
       alert("You want to delete this User");
       try {
         await axios.delete(`/api/users/${id}`);
@@ -122,13 +123,14 @@ export default {
     sortKey: "fetchUsers",
     sortOrder: "fetchUsers"
   }
-};
+});
 </script>
-
-
-
 <template>
+
    <div class="userlist-container">
+    <div class="logout">
+          <button class ="logout-btn" @click="logout">Logout</button>
+    </div>
   <h1 class="page-title">CRUD APPLICATION</h1>
       <AddUser 
       @user-added="fetchUsers" 
@@ -177,11 +179,11 @@ export default {
 <tr v-for="user in sortedUsers" :key="user.id">
         <td>{{ user.first_name }}</td>
         <td>{{ user.last_name }}</td>
-        <td>{{ user.dob }}</td>
+        <td>{{ user.dob.split("T")[0] }}</td>
         <td>{{ user.mobile }}</td>
         <td>{{ user.address }}</td>
         <td>
-          
+        
           <button class="edit-btn" type="button" @click="editUser(user)">Edit</button>
 
           <!-- <button @click="confirmDelete(user.id)">Delete</button> -->
@@ -197,20 +199,18 @@ export default {
      <!-- prv btn -->
   <button class="page-btn" :disabled="page === 1" @click="prevPage">Previous</button>
    <!-- Numbered buttons -->
- <!--  show first 2 pages -->
-  <button
-    v-for="n in Math.min(2, totalPages)" 
-    :key="n" 
-    class="page-btn" 
-    :class="{ active: page === n }" 
-    @click="goToPage(n)" 
-  >
-    {{ n }}
-  </button>
+<button 
+  v-if="page > 0" 
+  @click="goToPage(page)">
+  {{ page }}
+</button>
 
-  <!-- Ellipsis if more than 3 pages -->
-  <button v-if="totalPages > 3" class="page-btn" >...</button>
-
+<button 
+  v-if="page < totalPages" 
+  @click="goToPage(page + 1)">
+  {{ page + 1 }}
+</button>
+  
    <!-- next btn -->
   <button class="page-btn" :disabled="page === totalPages" @click="nextPage">Next</button>
    <select class="page-list" v-model.number="page" @change="goToPage(page)">
@@ -269,6 +269,9 @@ h1 {
 }
 
 /* Add User button */
+.logout{ 
+  overflow: hidden;
+}
 .add-btn {
   background: linear-gradient(135deg, #3498db, #5dade2);
   color: white;
@@ -281,7 +284,19 @@ h1 {
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   transition: background 0.3s, transform 0.2s ease-in-out;
 }
-
+.logout-btn{
+   background: linear-gradient(135deg, #db5534, #cf1414);
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 25px;   
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: background 0.3s, transform 0.2s ease-in-out;
+  float:right;
+}
 .add-btn:hover {
   background: linear-gradient(135deg, #2980b9, #3498db);
   transform: translateY(-2px);

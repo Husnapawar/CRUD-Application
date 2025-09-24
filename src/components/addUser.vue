@@ -3,15 +3,15 @@
        <h1>Add Users</h1>
     <form @submit.prevent="handleSubmit">
       <label for="First_Name">First Name</label>
-      <input type="text" v-model="first_name" placeholder="First Name" required />
+      <input type="text" v-model="user.first_name" placeholder="First Name" required />
       <label for="Last_name">Last Name</label>
-      <input type="text" v-model="last_name" placeholder="Last Name" required />
+      <input type="text" v-model="user.last_name" placeholder="Last Name" required />
       <label for="DOB">DOB</label>
-      <input type="date" v-model="dob"  required />
+      <input type="date" v-model="user.dob"  required />
       <label for="MOB">Mob.No </label>
-      <input type="number " v-model="mobile" placeholder="Mobile" required />
+      <input type="number " v-model="user.mobile" placeholder="Mobile" required />
       <label for="Address">Address</label>
-     <textarea v-model="address" placeholder="Enter full address..." rows="3" required></textarea>
+     <textarea v-model="user.address" placeholder="Enter full address..." rows="3" required></textarea>
       <button class="btn" type="submit">{{ editing ? 'Update' : 'Submit' }}</button>
       <button  class="btn"  type="button" v-if="editing" @click="cancelEdit">Cancel</button>
 
@@ -21,29 +21,40 @@
 </template>
 
 
-<script>  
+<script lang="ts">  
+import { defineComponent } from "vue";
 import axios from "axios";
-export default{
+
+interface User {
+   id?: number;
+  first_name: string;
+  last_name: string;
+  dob: string;
+  mobile: string;
+  address: string;
+}
+
+export default defineComponent({
     name:"AddUser",
       props: {  
-    userToEdit :{
-      type:   Object,
-      default: null
+    userToEdit: Object as () => User | null,
     },
-  },
+  
+
   data() {
     return {
-    //  id :null,
-      first_name: '',
-      last_name: '',
-      dob: '',
-      mobile: '',
-      address: '',
-       selectedUser: null,
-      editing: false,   //  added to avoid undefined error
-      editingid: null,
-      isEditing: false
-
+     id :null,
+        selectedUser: null as User | null,
+    editing: false,
+    editingid: null as number | null,
+    isEditing: false,
+    user: {
+      first_name: "",
+      last_name: "",
+      dob: "",
+      mobile: "",
+      address: "",
+    } as User,
   }
   },
 
@@ -52,16 +63,22 @@ export default{
 watch: {
   userToEdit: {
     immediate: true,
-    handler(newVal) {
+    handler(newVal: User | null) {
       if (newVal) {
-        this.id = newVal.id;
-        this.first_name = newVal.first_name;
-        this.last_name = newVal.last_name;
-        this.dob = newVal.dob;
-        this.mobile = newVal.mobile;
-        this.address = newVal.address;
+        // this.id = newVal.id;
+        // this.first_name = newVal.first_name;
+        // this.last_name = newVal.last_name;
+        // this.dob = newVal.dob;
+        // this.mobile = newVal.mobile;
+        // this.address = newVal.address;
         this.editing = true;
+       if (newVal.id !== undefined) {
+  this.editingid = newVal.id;
+} else {
+  this.editingid = null;
+}
 
+          this.user = { ...newVal };
       }else {
         this.resetForm();
       }
@@ -70,74 +87,40 @@ watch: {
 },
   mounted() {
   if (this.$route.query.edit) {
-    const user = JSON.parse(this.$route.query.user);
-    this.first_name = user.first_name;
-    this.last_name = user.last_name;
-    this.dob = user.dob;
-    this.mobile = user.mobile;
-    this.address = user.address;
+    const user = JSON.parse(this.$route.query.user as string) as User;
+   
     this.editing = true;
+     this.editingid = user.id ?? null;
+    this.user = { ...user };  
   }
 },
 methods:{
  
-
-async handleSubmit() {        
+// handle submit
+async handleSubmit() {
  try{
   if(this.editing){
-      // update user  
-// await axios.put(`/api/users/${this.id}`, {
-await this.updateUser();
-
-  
-//   first_name: this.first_name,
-//   last_name: this.last_name,
-//   dob: this.dob,
-//   mobile: this.mobile,
-//   address: this.address
-// });
+      // update user 
+      console.log(this.user);
+ await axios.put(`/api/users/${this.editingid}`,this.user);
+    
     alert("user update succeessfully");
+
   }else{
       // add new user here
-    await axios.post("/api/users", {
-      first_name: this.first_name,
-      last_name: this.last_name,
-      dob: this.dob,
-      mobile: this.mobile,
-      address: this.address,
-    });
+    await axios.post("/api/users", this.user
+      
+    );
     alert("user added successfully");
-  }
-     
+  } 
   this.resetForm();
-this.$emit("user-added");
+   this.$emit("user-added");  
 
 }
 catch(err){
   console.error(err);
 }
 },
-
-     // update User
-//   async updateUser() {
-//       try {
-//         const { id, first_name, last_name, dob, mobile, address } = this.selectedUser;
-
-//         await axios.put(`/api/users/${id}`, {
-//           first_name,
-//           last_name,
-//           dob,
-//           mobile,
-//            address
-//         });
-
-        
-//         this.fetchUsers();   // refresh list
-//         this.cancelEdit();   // reset form
-//  } catch (err) {
-//         console.error("Error updating user:", err);
-//       }
-//     },
 
     async updateUser() {
       try {
@@ -154,19 +137,21 @@ catch(err){
       this.resetForm();
     },
     // reset form
-    resetForm() 
-{
-   this.id = null;
-  this.first_name = "";
-    this.last_name = "";
-    this.dob = "";
-    this.mobile = "";
-    this.address = "";
-    this.editing=false;
-  //  this.editingId = null;
+    resetForm(){     
+  this.user = {
+   
+    first_name: "",
+    last_name: "",
+    dob: "",
+    mobile: "",
+    address: ""
+  };
+  this.editing = false;
+  this.editingid = null;
 }
+  
 }
-};
+});
 </script>
 
 <style scoped>
